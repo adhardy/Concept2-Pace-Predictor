@@ -2,11 +2,10 @@ import pandas as pd
 
 class Predictor():
 
-    def __init__(self):
-        pass
+    def __init__(self, file):
+        self.load_csv(file)
 
-    def load_csvs(self, input_path:str):
+    def load_csv(self, file:str):
         """Load the input csv into a pandas dataframe (self.df)"""
-        self.df_athletes = pd.read_csv(f"{input_path}/athletes_clean.csv", index_col=0)
-        self.df_workouts = pd.read_csv(f"{input_path}/workouts_clean.csv", index_col=0)
+        self.df = pd.read_csv(f"{file}", index_col=0)
 
