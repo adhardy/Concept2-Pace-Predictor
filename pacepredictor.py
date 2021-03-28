@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import plotly.graph_objects as go
 
 class Predictor():
 
@@ -39,10 +40,24 @@ class Predictor():
         self.df_val.columns = columns
         self.df_val = self.df_val.astype(dtypes)
 
-def create_lr_formula(y_col:str, x_cols:list):
+def create_linear_formula(y_col:str, x_cols:list):
 
     formula = f"{y_col} ~ "
     for x_col in x_cols:
         formula += f"{x_col} + "
     
     return formula[:-3]
+
+# Creating a general plotting function for plotting a scatter plot and line on the same figure
+def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, x_title, y_title):
+
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=x, y=scatter_y, name=scatter_name, mode="markers"))
+    fig.add_trace(go.Scatter(
+        x=x, y=line_y, name=line_name))
+    fig.update_layout(title=title, xaxis_title=x_title,
+        yaxis_title=y_title)
+    
+    return fig
