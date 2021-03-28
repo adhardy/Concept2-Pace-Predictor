@@ -33,3 +33,11 @@ class Predictor():
 
         self.df_val = pd.DataFrame(arr_val)
         self.df_val.columns = columns
+
+def create_lr_formula(y_col:str, x_cols:list):
+
+    formula = f"{y_col} ~"
+    for x_col in x_cols:
+        formula += f" + {x_col}"
+    
+    return formula
