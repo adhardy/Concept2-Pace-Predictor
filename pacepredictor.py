@@ -38,6 +38,6 @@ def create_lr_formula(y_col:str, x_cols:list):
 
     formula = f"{y_col} ~"
     for x_col in x_cols:
-        formula += f" + {x_col}"
+        formula += f"{x_col} + "
     
-    return formula
+    return formula[:-3]
