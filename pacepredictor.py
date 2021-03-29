@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import plotly.graph_objects as go
+import statsmodels.formula.api as smf
 
 class Predictor():
 
@@ -53,16 +54,22 @@ class Predictor():
             self.df_val = df_val
 
             self.ycol = ycol
-            self.xcol = xcol
+            self.xcols = xcols
 
             self.order = order
             self.descrption = descrption
-        
+            
+            self.formula = self.get_formula()
+
         def get_formula(self):
-            pass
+            formula = f"{self.ycol} ~ "
+            for xcol in self.xcols:
+                formula += f"{xcol} + "
+                return formula[:-3]
 
         def fit(self):
-            pass
+            self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
+            print(self.model.summary())
 
         def predict(self):
             pass
