@@ -5,19 +5,21 @@ import statsmodels.formula.api as smf
 import numpy as np
 
 class LinearRegressionIteration():
-    def __init__(self, linear_regression):       
+    def __init__(self, linear_regression, cols_x, col_y):       
         
         self.df_train = linear_regression.df_train.copy() #make sure we have copies as the model will alter the contents
         self.df_test = linear_regression.df_test.copy()
         self.df_val = linear_regression.df_val.copy()
 
-        self.col_y = linear_regression.col_y
-        self.cols_x = linear_regression.cols_x
+        self.col_y = col_y
+        self.cols_x = cols_x
 
         self.order = linear_regression.order
-        self.descrption = linear_regression.descrption
         
         self.formula = self.get_formula()
+
+        self.fit()
+        self.predict()
 
     def get_formula(self):
         formula = f"{self.col_y} ~ "
@@ -33,13 +35,13 @@ class LinearRegressionIteration():
         self.col_pred = f"{self.col_y}_pred"
         self.df_test[self.col_pred] = self.model.predict(self.df_test[self.cols_x])
         self.df_test["squared_error"] = squared_error(self.df_test, self.col_y, self.col_pred)
-        self.df_test["error"] = np.sqrt(self.df_test["squared_error"])
+        self.df_test["root_squared_error"] = np.sqrt(self.df_test["squared_error"])
         self.mse = self.df_test["squared_error"].mean()
-        self.mean_error = self.df_test["error"].mean()
+        self.rmse = self.df_test["root_squared_error"].mean()
 
     def stats(self):
         print(f"Mean squared error: {round(self.mse,1)}")
-        print(f"Mean error: {round(self.mean_error,1)}")
+        print(f"Root mean squared error: {round(self.rmse,1)}")
 
 def squared_error(df, col_a, col_b):
     return (df[col_a] - df[col_b])**2
@@ -68,20 +70,39 @@ class LinearRegression():
         self.descrption = description
 
         self.iterations = []
+        self.p_max = None
 
     def iterate(self):
-        #if all p values are below alpha, stop
-        self.iterations.append(LinearRegressionIteration(self))
+        cols_x = self.cols_x
+        col_y = self.col_y
+
+        #get our intial model
+
+        self.iterations.append(LinearRegressionIteration(self, cols_x, col_y))
+        p_values = self.iterations[-1].model.pvalues
+
+        #loop until p_max > alpha
+        while p_values.max() > self.alpha:
+            p_max_idx = p_values.idxmax()
+
+            cols_x.remove(p_max_idx)
+            self.iterations.append(LinearRegressionIteration(self, cols_x, col_y))
+            p_values = self.iterations[-1].model.pvalues
+    
+    def summarise(self):
+        summary_columns = ["mse", "rmse", "cols_x", "coefficients", "p_vals"]
+        self.summary = pd.DataFrame(columns=summary_columns)
+        for iteration in self.iterations:
+            row = [iteration.model.mse_model, np.sqrt(iteration.model.mse_model), iteration.cols_x, iteration.model.params, iteration.model.pvalues]
+            print(row)
+            self.summary = self.summary.append(row)
+        print(self.summary)
 
 class Predictor():
 
-    def __init__(self, file, dummies=True, random_state=None):
+    def __init__(self, file, random_state=None):
         self.load_csv(file)
-        self.dummies = dummies
         self.random_state = random_state
-        if self.dummies:
-            self.df_no_dummies = self.df
-            self.df = pd.get_dummies(self.df)
         #replace all space in column names with underscores for patsy
         self.df = self.df.rename(columns=lambda x: x.replace(" ", "_"))
         self.models = {}
@@ -131,4 +152,24 @@ def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, 
 
 def get_cols_x(df, col_y):
     """get a list of all the columns names not matching col_y"""
-    return df.loc[:,df.columns != col_y].columns
+    return df.loc[:,df.columns != col_y].columns.to_list()
+
+
+
+if __name__ == "__main__":
+    file_path = "./"
+    file_5_2_10 = "5_2_10.csv"
+
+    pp_5_2_10 = Predictor(f"{file_path}{file_5_2_10}", random_state=42)
+
+    pp_5_2_10.df = pp_5_2_10.df.drop(["adaptive_rowing_category","weight_class", "profile_id"], axis=1)
+
+    pp_5_2_10.split_data()
+
+    col_y = "time_2000"
+    cols_x = get_cols_x(pp_5_2_10.df, col_y)
+
+    pp_5_2_10.add_model("Linear", col_y, cols_x, 1, "First order model, using all vars", alpha=0.005)
+    pp_5_2_10.models["Linear"].iterate()
+
+    pp_5_2_10.models["Linear"].summarise()
