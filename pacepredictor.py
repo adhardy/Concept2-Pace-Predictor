@@ -94,7 +94,7 @@ class LinearRegression():
         summary_columns = ["mse", "rmse", "cols_x", "coefficients", "p_vals"]
         self.summary = pd.DataFrame(columns=summary_columns)
         for iteration in self.iterations:
-            row = [iteration.model.mse_model, np.sqrt(iteration.model.mse_model), iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
+            row = [iteration.mse, iteration.rmse, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
             self.summary.loc[len(self.summary)] = row
 
 class Predictor():
