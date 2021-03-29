@@ -61,3 +61,24 @@ def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, 
         yaxis_title=y_title)
     
     return fig
+
+class LinearRegressionModel():
+
+    def __init__(self, df_test, df_train, df_val, ycol:str, xcols:list, order:int=1, descrption=None):       
+        
+        self.df_train = df_train
+        self.df_test = df_test
+        self.df_val = df_val
+
+        self.ycol = ycol
+        self.xcol = xcol
+
+        self.order = order
+        self.descrption = descrption
+    
+    def get_formula(self):
+        pass
+
+    def fit(self):
+
+    def predict(self):
