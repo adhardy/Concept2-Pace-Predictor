@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 import plotly.graph_objects as go
 import statsmodels.formula.api as smf
 import numpy as np
+import pprint
 
 class LinearRegressionIteration():
     def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
@@ -12,7 +13,7 @@ class LinearRegressionIteration():
         self.df_val = linear_regression.df_val.copy()
 
         self.col_y = col_y
-        self.cols_x = cols_x
+        self.cols_x = cols_x.copy()
         self.intercept = intercept
         self.order = linear_regression.order
         
@@ -51,11 +52,11 @@ class LinearRegressionIteration():
 def squared_error(df, col_a, col_b):
     return (df[col_a] - df[col_b])**2
 
-def create_linear_formula(col_y:str, cols_x:list):
+def create_lr_formula(col_y:str, cols_x:list):
     formula = f"{col_y} ~ "
     for col_x in cols_x:
         formula += f"{col_x} + "
-    
+
     return formula[:-3]
 
 class LinearRegression():
@@ -65,17 +66,26 @@ class LinearRegression():
         self.df_train = df_train.copy() #make sure we have copies as the model will alter the contents
         self.df_test = df_test.copy()
         self.df_val = df_val.copy()
-
+        self.order = order
         self.alpha = alpha
-
         self.col_y = col_y
         self.cols_x = cols_x
-
-        self.order = order
         self.descrption = description
-
         self.iterations = []
         self.p_max = None
+        self.get_polynomial_data()
+
+
+    def get_polynomial_data(self):
+        cols_x_new = []
+        for o in range(2,self.order+1):
+            for col_x in self.cols_x:
+                col_x_new = f"{col_x}_{o}"
+                self.df_train[col_x_new] = self.df_train[col_x]**2
+                self.df_test[col_x_new] = self.df_train[col_x]**2
+                self.df_val[col_x_new] = self.df_train[col_x]**2
+                cols_x_new.append(col_x_new)
+        self.cols_x += cols_x_new
 
     def iterate(self):
         cols_x = self.cols_x
@@ -100,10 +110,10 @@ class LinearRegression():
         self.summarise()
 
     def summarise(self):
-        summary_columns = ["mse", "rmse", "p_max", "intercept", "parameters","coefficients", "p_vals"]
+        summary_columns = ["mse", "rmse", "p_max_param", "p_max", "intercept", "parameters","coefficients", "p_vals"]
         self.summary = pd.DataFrame(columns=summary_columns)
         for iteration in self.iterations:
-            row = [iteration.mse, iteration.rmse, iteration.model.pvalues.max(),iteration.intercept, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
+            row = [iteration.mse, iteration.rmse, iteration.model.pvalues.idxmax(), iteration.model.pvalues.max(),iteration.intercept, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
             self.summary.loc[len(self.summary)] = row
 
 class Predictor():
@@ -174,10 +184,18 @@ if __name__ == "__main__":
 
     pp_5_2_10.split_data()
 
-    col_y = "time_2000"
+    
+    
+    # col_y = "time_2000"
+    # cols_x = get_cols_x(pp_5_2_10.df, col_y)
+    # pp_5_2_10.add_model("Linear", col_y, cols_x, 1, "First order model, using all vars", alpha=0.005)
+    # pp_5_2_10.models["Linear"].iterate()
+
+    # pp_5_2_10.models["Linear"].summarise()
+
+    col_y = "time_5000"
     cols_x = get_cols_x(pp_5_2_10.df, col_y)
-
-    pp_5_2_10.add_model("Linear", col_y, cols_x, 1, "First order model, using all vars", alpha=0.005)
-    pp_5_2_10.models["Linear"].iterate()
-
-    pp_5_2_10.models["Linear"].summarise()
+    model_name = "Linear 5k"
+    pp_5_2_10.add_model(model_name, col_y, cols_x, 2, "First order model to predict 5k, using all vars", alpha=0.05)
+    pp_5_2_10.models[model_name].iterate()
+    print(pp_5_2_10.models[model_name].summary)
