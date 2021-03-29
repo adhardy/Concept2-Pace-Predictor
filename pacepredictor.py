@@ -61,7 +61,7 @@ def create_lr_formula(col_y:str, cols_x:list):
 
 class LinearRegression():
 
-    def __init__(self, df_train, df_test, df_val, col_y:str, cols_x:list, order:int, description:str=None, alpha:float=0.05):       
+    def __init__(self, df_train, df_test, df_val, col_y:str, cols_x:list, order:int, description:str=None, alpha:float=0.05, intercept:bool=True):       
         
         self.df_train = df_train.copy() #make sure we have copies as the model will alter the contents
         self.df_test = df_test.copy()
@@ -74,7 +74,7 @@ class LinearRegression():
         self.iterations = []
         self.p_max = None
         self.get_polynomial_data()
-
+        self.intercept = intercept
 
     def get_polynomial_data(self):
         cols_x_new = []
@@ -93,18 +93,18 @@ class LinearRegression():
 
         #get our intial model
 
-        self.iterations.append(LinearRegressionIteration(self, cols_x, col_y))
+        self.iterations.append(LinearRegressionIteration(self, cols_x, col_y, intercept=self.intercept))
         p_values = self.iterations[-1].model.pvalues
 
         #loop until p_max > alpha
-        while p_values.max() > self.alpha:
+        while p_values.max() > self.alpha and len(cols_x) > 0: #stop if remove all the columns 
             p_max_idx = p_values.idxmax()
 
             if p_max_idx == "Intercept":
                 self.intercept = False
             else:
                 cols_x.remove(p_max_idx)
-            self.iterations.append(LinearRegressionIteration(self, cols_x, col_y))
+            self.iterations.append(LinearRegressionIteration(self, cols_x, col_y, intercept=self.intercept))
             p_values = self.iterations[-1].model.pvalues
     
         self.summarise()
@@ -151,8 +151,8 @@ class Predictor():
         self.df_val.columns = columns
         self.df_val = self.df_val.astype(dtypes)
 
-    def add_model(self, model_name:str, col_y:str, cols_x:list, order:int=1, descrption:str=None, alpha:float=0.05):
-        self.models[model_name] = LinearRegression(self.df_train, self.df_test, self.df_val, col_y, cols_x, order, descrption, alpha)
+    def add_model(self, model_name:str, col_y:str, cols_x:list, order:int=1, descrption:str=None, alpha:float=0.05, intercept=True):
+        self.models[model_name] = LinearRegression(self.df_train, self.df_test, self.df_val, col_y, cols_x, order, descrption, alpha, intercept)
 
 # Creating a general plotting function for plotting a scatter plot and line on the same figure
 def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, x_title, y_title):
@@ -184,18 +184,9 @@ if __name__ == "__main__":
 
     pp_5_2_10.split_data()
 
-    
-    
-    # col_y = "time_2000"
-    # cols_x = get_cols_x(pp_5_2_10.df, col_y)
-    # pp_5_2_10.add_model("Linear", col_y, cols_x, 1, "First order model, using all vars", alpha=0.005)
-    # pp_5_2_10.models["Linear"].iterate()
-
-    # pp_5_2_10.models["Linear"].summarise()
-
-    col_y = "time_5000"
+    col_y = "time_2000"
     cols_x = get_cols_x(pp_5_2_10.df, col_y)
-    model_name = "Linear 5k"
-    pp_5_2_10.add_model(model_name, col_y, cols_x, 2, "First order model to predict 5k, using all vars", alpha=0.05)
+    model_name = "2nd order 2k"
+    pp_5_2_10.add_model(model_name, col_y, cols_x, 2, "2nd order model to predict 2k, using all vars", alpha=0.05)
     pp_5_2_10.models[model_name].iterate()
     print(pp_5_2_10.models[model_name].summary)
