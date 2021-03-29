@@ -29,7 +29,6 @@ class LinearRegressionIteration():
 
     def fit(self):
         self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
-        print(self.model.summary())
 
     def predict(self):
         self.col_pred = f"{self.col_y}_pred"
@@ -89,14 +88,14 @@ class LinearRegression():
             self.iterations.append(LinearRegressionIteration(self, cols_x, col_y))
             p_values = self.iterations[-1].model.pvalues
     
+        self.summarise()
+
     def summarise(self):
         summary_columns = ["mse", "rmse", "cols_x", "coefficients", "p_vals"]
         self.summary = pd.DataFrame(columns=summary_columns)
         for iteration in self.iterations:
-            row = [iteration.model.mse_model, np.sqrt(iteration.model.mse_model), iteration.cols_x, iteration.model.params, iteration.model.pvalues]
-            print(row)
-            self.summary = self.summary.append(row)
-        print(self.summary)
+            row = [iteration.model.mse_model, np.sqrt(iteration.model.mse_model), iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
+            self.summary.loc[len(self.summary)] = row
 
 class Predictor():
 
