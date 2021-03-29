@@ -42,11 +42,11 @@ class Predictor():
         self.df_val = self.df_val.astype(dtypes)
 
     def add_model(self, model_name:str, ycol:str, xcols:list, order:int=1, descrption:str=None):
-        self.models[model_name] = self.LinearRegressionModel(self.df_train, self.df_ttest, self.df_val)
+        self.models[model_name] = self.LinearRegressionModel(self.df_train, self.df_test, self.df_val, ycol, xcols, order, descrption)
 
     class LinearRegressionModel():
 
-        def __init__(self, df_train, df_test, df_val, ycol:str, xcols:list, order:int, descrption):       
+        def __init__(self, df_train, df_test, df_val, ycol:str, xcols:list, order:int, descrption:str):       
             
             self.df_train = df_train
             self.df_test = df_test
@@ -89,3 +89,6 @@ def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, 
     
     return fig
 
+def get_xcols(df, ycol):
+    """get a list of all the columns names not matching ycol"""
+    return df.loc[:,df.columns != ycol].columns
