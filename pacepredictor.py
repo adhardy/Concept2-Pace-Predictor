@@ -5,7 +5,7 @@ import statsmodels.formula.api as smf
 import numpy as np
 
 class LinearRegressionIteration():
-    def __init__(self, linear_regression, cols_x, col_y):       
+    def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
         
         self.df_train = linear_regression.df_train.copy() #make sure we have copies as the model will alter the contents
         self.df_test = linear_regression.df_test.copy()
@@ -13,7 +13,7 @@ class LinearRegressionIteration():
 
         self.col_y = col_y
         self.cols_x = cols_x
-
+        self.intercept = intercept
         self.order = linear_regression.order
         
         self.formula = self.get_formula()
@@ -23,9 +23,15 @@ class LinearRegressionIteration():
 
     def get_formula(self):
         formula = f"{self.col_y} ~ "
+
         for col_x in self.cols_x:
             formula += f"{col_x} + "
-        return formula[:-3]
+        formula = formula[:-3]
+
+        if self.intercept == False:
+            formula = f"{formula} - 1" 
+
+        return formula
 
     def fit(self):
         self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
@@ -84,17 +90,20 @@ class LinearRegression():
         while p_values.max() > self.alpha:
             p_max_idx = p_values.idxmax()
 
-            cols_x.remove(p_max_idx)
+            if p_max_idx == "Intercept":
+                self.intercept = False
+            else:
+                cols_x.remove(p_max_idx)
             self.iterations.append(LinearRegressionIteration(self, cols_x, col_y))
             p_values = self.iterations[-1].model.pvalues
     
         self.summarise()
 
     def summarise(self):
-        summary_columns = ["mse", "rmse", "cols_x", "coefficients", "p_vals"]
+        summary_columns = ["mse", "rmse", "p_max", "intercept", "parameters","coefficients", "p_vals"]
         self.summary = pd.DataFrame(columns=summary_columns)
         for iteration in self.iterations:
-            row = [iteration.mse, iteration.rmse, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
+            row = [iteration.mse, iteration.rmse, iteration.model.pvalues.max(),iteration.intercept, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
             self.summary.loc[len(self.summary)] = row
 
 class Predictor():
