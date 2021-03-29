@@ -13,6 +13,7 @@ class Predictor():
             self.df = pd.get_dummies(self.df)
         #replace all space in column names with underscores for patsy
         self.df = self.df.rename(columns=lambda x: x.replace(" ", "_"))
+        self.models = {}
 
     def load_csv(self, file:str):
         """Load the input csv into a pandas dataframe (self.df)"""
@@ -40,6 +41,32 @@ class Predictor():
         self.df_val.columns = columns
         self.df_val = self.df_val.astype(dtypes)
 
+    def add_model(self, model_name:str, ycol:str, xcols:list, order:int=1, descrption:str=None):
+        self.models[model_name] = self.LinearRegressionModel(self.df_train, self.df_ttest, self.df_val)
+
+    class LinearRegressionModel():
+
+        def __init__(self, df_train, df_test, df_val, ycol:str, xcols:list, order:int, descrption):       
+            
+            self.df_train = df_train
+            self.df_test = df_test
+            self.df_val = df_val
+
+            self.ycol = ycol
+            self.xcol = xcol
+
+            self.order = order
+            self.descrption = descrption
+        
+        def get_formula(self):
+            pass
+
+        def fit(self):
+            pass
+
+        def predict(self):
+            pass
+
 def create_linear_formula(y_col:str, x_cols:list):
 
     formula = f"{y_col} ~ "
@@ -62,23 +89,3 @@ def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, 
     
     return fig
 
-class LinearRegressionModel():
-
-    def __init__(self, df_test, df_train, df_val, ycol:str, xcols:list, order:int=1, descrption=None):       
-        
-        self.df_train = df_train
-        self.df_test = df_test
-        self.df_val = df_val
-
-        self.ycol = ycol
-        self.xcol = xcol
-
-        self.order = order
-        self.descrption = descrption
-    
-    def get_formula(self):
-        pass
-
-    def fit(self):
-
-    def predict(self):
