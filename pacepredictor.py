@@ -12,7 +12,6 @@ class LinearRegressionIteration():
     def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
         
         self.df_train = linear_regression.df_train.copy() #make sure we have copies as the model will alter the contents
-        self.df_test = linear_regression.df_test.copy()
         self.df_val = linear_regression.df_val.copy()
 
         self.col_y = col_y
@@ -42,11 +41,11 @@ class LinearRegressionIteration():
 
     def predict(self):
         self.col_pred = f"{self.col_y}_pred"
-        self.df_test[self.col_pred] = self.model.predict(self.df_test[self.cols_x])
-        self.df_test["squared_error"] = squared_error(self.df_test, self.col_y, self.col_pred)
-        self.df_test["root_squared_error"] = np.sqrt(self.df_test["squared_error"])
-        self.mse = self.df_test["squared_error"].mean()
-        self.rmse = self.df_test["root_squared_error"].mean()
+        self.df_val[self.col_pred] = self.model.predict(self.df_val[self.cols_x])
+        self.df_val["squared_error"] = squared_error(self.df_val, self.col_y, self.col_pred)
+        self.df_val["root_squared_error"] = np.sqrt(self.df_val["squared_error"])
+        self.mse = self.df_val["squared_error"].mean()
+        self.rmse = self.df_val["root_squared_error"].mean()
 
     def stats(self):
         print(f"Mean squared error: {round(self.mse,1)}")
@@ -228,4 +227,25 @@ def plot_distributions(df,cols = 4, height=4000, width=2000):
         fig.add_trace(go.Histogram(x=df[col_name]), row=row, col=col)
 
     fig.update_layout(height=height, width=width, title="Distribution", showlegend=False)
+    return fig
+
+def plot_violins(df, target, parameters,cols = 4, height=4000, width=2000):
+
+    rows = math.ceil(len(parameters) / cols) 
+
+    cols = 2
+    subplot_titles = tuple(f"{parameter} vs {target}" for parameter in parameters)
+    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+    for i, col_name in enumerate(parameters):
+        row = (i // cols) + 1
+        col = (i % cols) + 1
+        
+        fig.add_trace(go.Violin(
+            x=df[col_name], y=df[target], name=col_name, box_visible=True
+        ), row=row, col=col)
+        
+        fig.update_xaxes(patch=dict(type='category', categoryorder='mean ascending'), row=row, col=col)
+        
+    fig.update_layout(height=height, width=width)
     return fig
