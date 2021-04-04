@@ -4,6 +4,9 @@ import plotly.graph_objects as go
 import statsmodels.formula.api as smf
 import numpy as np
 import pprint
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import math
 
 class LinearRegressionIteration():
     def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
@@ -190,3 +193,39 @@ if __name__ == "__main__":
     pp_5_2_10.add_model(model_name, col_y, cols_x, 2, "2nd order model to predict 2k, using all vars", alpha=0.05)
     pp_5_2_10.models[model_name].iterate()
     print(pp_5_2_10.models[model_name].summary)
+
+def percent_complete(df):
+    print(df.notnull().mean()*100)
+
+
+def plot_scatters(df, target, parameters, cols=2, height=4000, width=2000):
+
+    rows = math.ceil(len(parameters) / cols) 
+
+    subplot_titles = tuple(f"{parameter} vs {target}" for parameter in parameters)
+    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+    for i, col_name in enumerate(parameters):
+        row = (i // cols) + 1
+        col = (i % cols) + 1
+        
+        fig.add_trace(go.Scattergl(x=df[col_name], y=df[target], mode="markers"), row=row, col=col)
+
+    fig.update_layout(height=height, width=width, title="Target vs Parameters", showlegend=False)
+    return fig
+
+def plot_distributions(df,cols = 4, height=4000, width=2000):
+
+    rows = math.ceil(len(df.columns) / cols) 
+
+    subplot_titles = tuple(parameter for parameter in df.columns)
+    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+    for i, col_name in enumerate(df.columns):
+        row = (i // cols) + 1
+        col = (i % cols) + 1
+        
+        fig.add_trace(go.Histogram(x=df[col_name]), row=row, col=col)
+
+    fig.update_layout(height=height, width=width, title="Distribution", showlegend=False)
+    return fig
