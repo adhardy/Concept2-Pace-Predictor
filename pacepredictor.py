@@ -125,17 +125,26 @@ class LinearRegression():
         self.drop = drop
 
         self.get_polynomial_data()
-        #self.drop_columns()
+        self.drop_columns()
         self.get_formula()
         self.fit()
         self.predict()
-        
+
+    def drop_columns(self):    
+        #drop any non-polynomial columns
+        for column in self.drop:
+            if column in self.df_train.columns:
+                self.df_train.drop(column, axis=1, inplace=True)
+                self.df_val.drop(column, axis=1, inplace=True)
+                self.parameters.remove(column)
+    
     def get_polynomial_data(self):
         parameters_new = []
         for o in range(2,self.order+1):
             for parameter in self.parameters:
                 if self.df_train[parameter].dtype in (float, int):
                     parameter_new = f"{parameter}_{o}"
+                    #don't create polynomial columns we don't want
                     if parameter_new in self.drop:
                         pass
                     else:
@@ -149,9 +158,9 @@ class LinearRegression():
 
     def fit(self):
         self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
-    
+
     def predict(self):
-        self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val)
+        self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val[self.parameters])
         self.df_val["squared_error"] = (self.df_val[self.target] - self.df_val[f"{self.target}_pred"])**2
         self.mse = self.df_val["squared_error"].mean()
         self.df_val["residuals"] = self.model.resid
