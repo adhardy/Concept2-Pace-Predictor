@@ -113,7 +113,7 @@ class AutoLinearRegression():
             self.summary.loc[len(self.summary)] = row
 
 class LinearRegression():
-    def __init__(self, df_train, df_val, target:str, parameters:list, order:int, description:str=None, intercept:bool=True):
+    def __init__(self, df_train, df_val, target:str, parameters:list, order:int, description:str=None, intercept:bool=True, drop=[]):
         self.df_train = df_train.copy()
         self.df_val = df_val.copy()
 
@@ -122,14 +122,28 @@ class LinearRegression():
         self.parameters = parameters
         self.description = description
         self.intercept = intercept
-        
+        self.drop = drop
+
+        self.get_polynomial_data()
+        self.drop_columns()
         self.get_formula()
         self.fit()
         self.predict()
-
+        
+    def get_polynomial_data(self):
+        parameters_new = []
+        for o in range(2,self.order+1):
+            for parameter in self.parameters:
+                if self.df_train[parameter].dtype in (float, int):
+                    parameter_new = f"{parameter}_{o}"
+                    self.df_train[parameter_new] = self.df_train[parameter]**2
+                    self.df_val[parameter_new] = self.df_train[parameter]**2
+                    parameters_new.append(parameter_new)
+        self.parameters += parameters_new
+    
     def get_formula(self):
         self.formula = f"{self.target} ~ {' + '.join(self.parameters)}"
-        
+
     def fit(self):
         self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
     
@@ -141,6 +155,12 @@ class LinearRegression():
 
     def anova(self):
         return sm.stats.anova_lm(self.model, typ=2)
+
+    def drop_columns(self):
+        if len(self.drop) > 0:
+            self.df_val.drop(self.drop, axis=1, inplace=True)
+            self.df_train.drop(self.drop, axis=1, inplace=True)
+            self.parameters.remove(self.drop)
 
     # Creating a general plotting function for plotting a scatter plot and line on the same figure
     def plot_residuals(self):
@@ -162,6 +182,9 @@ class LinearRegression():
         fig = sm.qqplot(self.model.resid, fit=True, line='45')
         plt.title("QQ Plot of residuals")
         plt.show()
+
+    def p_max(self):
+        print(f"Max p: {self.model.pvalues.idxmax()} p={round(self.model.pvalues.max(), 3)}")
 
 class Predictor():
 
@@ -257,8 +280,8 @@ class Predictor():
     def add_auto_model(self, model_name:str, col_y:str, cols_x:list, order:int=1, description:str=None, alpha:float=0.05, intercept:bool=True):
         self.auto_models[model_name] = AutoLinearRegression(self.df_train, self.df_val, col_y, cols_x, order, description, alpha, intercept)
 
-    def add_model(self, model_name:str, target:str, parameters:list, order:int=1, description:str=None, intercept:bool=True):
-        self.models[model_name] = LinearRegression(self.df_train, self.df_val, target, parameters, order, description, intercept)
+    def add_model(self, model_name:str, target:str, parameters:list, order:int=1, description:str=None, intercept:bool=True, drop=[]):
+        self.models[model_name] = LinearRegression(self.df_train, self.df_val, target, parameters, order, description, intercept, drop)
 
 def get_cols_x(df, col_y):
     """get a list of all the columns names not matching col_y"""
