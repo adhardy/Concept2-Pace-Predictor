@@ -52,16 +52,6 @@ class LinearRegressionIteration():
         print(f"Mean squared error: {round(self.mse,1)}")
         print(f"Root mean squared error: {round(self.rmse,1)}")
 
-def squared_error(df, col_a, col_b):
-    return (df[col_a] - df[col_b])**2
-
-def create_lr_formula(col_y:str, cols_x:list):
-    formula = f"{col_y} ~ "
-    for col_x in cols_x:
-        formula += f"{col_x} + "
-
-    return formula[:-3]
-
 class AutoLinearRegression():
 
     def __init__(self, df_train, df_val, col_y:str, cols_x:list, order:int, description:str=None, alpha:float=0.05, intercept:bool=True):       
@@ -119,8 +109,31 @@ class AutoLinearRegression():
             row = [iteration.mse, iteration.rmse, iteration.model.pvalues.idxmax(), iteration.model.pvalues.max(),iteration.intercept, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
             self.summary.loc[len(self.summary)] = row
 
-# class LinearRegression():
-#     def __init__():
+class LinearRegression():
+    def __init__(self, df_train, df_val, target:str, parameters:list, order:int, description:str=None, intercept:bool=True):
+        self.df_train = df_train.copy()
+        self.df_val = df_val.copy()
+
+        self.order = order
+        self.target = target
+        self.parameters = parameters
+        self.description = description
+        self.intercept = intercept
+        
+        self.get_formula()
+        self.fit()
+        self.predict()
+
+    def get_formula(self):
+        self.formula = f"{self.target} ~ {' + '.join(self.parameters)}"
+        
+    def fit(self):
+        self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
+    
+    def predict(self):
+        self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val)
+        self.df_val["squared_error"] = (self.df_val[self.target] - self.df_val[f"{self.target}_pred"])**2
+        self.mse = self.df_val["squared_error"].mean()
 
 class Predictor():
 
@@ -217,7 +230,7 @@ class Predictor():
         self.auto_models[model_name] = AutoLinearRegression(self.df_train, self.df_val, col_y, cols_x, order, description, alpha, intercept)
 
     def add_model(self, model_name:str, target:str, parameters:list, order:int=1, description:str=None, intercept:bool=True):
-        self.models[model_name] = LinearRegression(self.df_train. self.df_val, target, parameters, order, description, intercept)
+        self.models[model_name] = LinearRegression(self.df_train, self.df_val, target, parameters, order, description, intercept)
 
 
 
@@ -239,8 +252,6 @@ def get_cols_x(df, col_y):
     """get a list of all the columns names not matching col_y"""
     return df.loc[:,df.columns != col_y].columns.to_list()
 
-
-
 if __name__ == "__main__":
     file_path = "./"
     file_5_2_10 = "5_2_10.csv"
@@ -261,11 +272,5 @@ if __name__ == "__main__":
 def percent_complete(df):
     print(df.notnull().mean()*100)
 
-
-
-
-
-def linear_regression(df, target, parameters):
-    formula = f"{target} ~ {' + '.join(parameters)}"
-    model = smf.ols(formula=formula, data=df).fit()
-    return model
+def squared_error(df, col_a, col_b):
+    return (df[col_a] - df[col_b])**2
