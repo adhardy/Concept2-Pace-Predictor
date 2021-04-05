@@ -125,7 +125,7 @@ class LinearRegression():
         self.drop = drop
 
         self.get_polynomial_data()
-        self.drop_columns()
+        #self.drop_columns()
         self.get_formula()
         self.fit()
         self.predict()
@@ -136,9 +136,12 @@ class LinearRegression():
             for parameter in self.parameters:
                 if self.df_train[parameter].dtype in (float, int):
                     parameter_new = f"{parameter}_{o}"
-                    self.df_train[parameter_new] = self.df_train[parameter]**2
-                    self.df_val[parameter_new] = self.df_train[parameter]**2
-                    parameters_new.append(parameter_new)
+                    if parameter_new in self.drop:
+                        pass
+                    else:
+                        self.df_train[parameter_new] = self.df_train[parameter]**2
+                        self.df_val[parameter_new] = self.df_train[parameter]**2
+                        parameters_new.append(parameter_new)
         self.parameters += parameters_new
     
     def get_formula(self):
@@ -156,11 +159,6 @@ class LinearRegression():
     def anova(self):
         return sm.stats.anova_lm(self.model, typ=2)
 
-    def drop_columns(self):
-        if len(self.drop) > 0:
-            self.df_val.drop(self.drop, axis=1, inplace=True)
-            self.df_train.drop(self.drop, axis=1, inplace=True)
-            self.parameters.remove(self.drop)
 
     # Creating a general plotting function for plotting a scatter plot and line on the same figure
     def plot_residuals(self):
@@ -309,3 +307,17 @@ def percent_complete(df):
 
 def squared_error(df, col_a, col_b):
     return (df[col_a] - df[col_b])**2
+
+# Creating a general plotting function for plotting a scatter plot and line on the same figure
+def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, x_title, y_title):
+
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=x, y=scatter_y, name=scatter_name, mode="markers"))
+    fig.add_trace(go.Scatter(
+        x=x, y=line_y, name=line_name))
+    fig.update_layout(title=title, xaxis_title=x_title,
+        yaxis_title=y_title)
+    
+    return fig
