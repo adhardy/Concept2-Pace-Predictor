@@ -155,6 +155,8 @@ class LinearRegression():
     
     def get_formula(self):
         self.formula = f"{self.target} ~ {' + '.join(self.parameters)}"
+        if self.intercept == False:
+            self.formula += "-1"
 
     def fit(self):
         self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
