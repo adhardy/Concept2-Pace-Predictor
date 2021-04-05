@@ -77,9 +77,9 @@ class AutoLinearRegression():
         for o in range(2,self.order+1):
             for col_x in self.cols_x:
                 col_x_new = f"{col_x}_{o}"
-                self.df_train[col_x_new] = self.df_train[col_x]**2
-                self.df_test[col_x_new] = self.df_train[col_x]**2
-                self.df_val[col_x_new] = self.df_train[col_x]**2
+                self.df_train[col_x_new] = self.df_train[col_x]**o
+                self.df_test[col_x_new] = self.df_train[col_x]**o
+                self.df_val[col_x_new] = self.df_train[col_x]**o
                 cols_x_new.append(col_x_new)
         self.cols_x += cols_x_new
 
@@ -148,8 +148,8 @@ class LinearRegression():
                     if parameter_new in self.drop:
                         pass
                     else:
-                        self.df_train[parameter_new] = self.df_train[parameter]**2
-                        self.df_val[parameter_new] = self.df_train[parameter]**2
+                        self.df_train[parameter_new] = self.df_train[parameter]**o
+                        self.df_val[parameter_new] = self.df_val[parameter]**o
                         parameters_new.append(parameter_new)
         self.parameters += parameters_new
     
@@ -158,13 +158,13 @@ class LinearRegression():
 
     def fit(self):
         self.model = smf.ols(formula=self.formula, data=self.df_train).fit()
+        self.df_train["residuals"] = self.model.resid
 
     def predict(self):
-        self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val[self.parameters])
+        self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val)
         self.df_val["squared_error"] = (self.df_val[self.target] - self.df_val[f"{self.target}_pred"])**2
         self.mse = self.df_val["squared_error"].mean()
-        self.df_val["residuals"] = self.model.resid
-
+        
     def anova(self):
         return sm.stats.anova_lm(self.model, typ=2)
 
@@ -172,14 +172,14 @@ class LinearRegression():
     # Creating a general plotting function for plotting a scatter plot and line on the same figure
     def plot_residuals(self):
 
-        line_y = [0] * len(self.df_val[self.target])
+        line_y = [0] * len(self.df_train[self.target])
 
         fig = go.Figure()
         
         fig.add_trace(go.Scatter(
-            x=self.df_val[self.target], y=self.df_val["residuals"], name="Residuals", mode="markers"))
+            x=self.df_train[self.target], y=self.df_train["residuals"], name="Residuals", mode="markers"))
         fig.add_trace(go.Scatter(
-            x=self.df_val[self.target], y=line_y, name="y=0"))
+            x=self.df_train[self.target], y=line_y, name="y=0"))
         fig.update_layout(title="Plot of Model Residuals", xaxis_title=self.target,
             yaxis_title="Residuals")
         
