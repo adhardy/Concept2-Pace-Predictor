@@ -8,6 +8,9 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import math
 import statsmodels.formula.api as smf
+import statsmodels.api as sm
+from matplotlib import pyplot as plt
+import statsmodels.api as sm
 
 class LinearRegressionIteration():
     def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
@@ -134,6 +137,31 @@ class LinearRegression():
         self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val)
         self.df_val["squared_error"] = (self.df_val[self.target] - self.df_val[f"{self.target}_pred"])**2
         self.mse = self.df_val["squared_error"].mean()
+        self.df_val["residuals"] = self.model.resid
+
+    def anova(self):
+        return sm.stats.anova_lm(self.model, typ=2)
+
+    # Creating a general plotting function for plotting a scatter plot and line on the same figure
+    def plot_residuals(self):
+
+        line_y = [0] * len(self.df_val[self.target])
+
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatter(
+            x=self.df_val[self.target], y=self.df_val["residuals"], name="Residuals", mode="markers"))
+        fig.add_trace(go.Scatter(
+            x=self.df_val[self.target], y=line_y, name="y=0"))
+        fig.update_layout(title="Plot of Model Residuals", xaxis_title=self.target,
+            yaxis_title="Residuals")
+        
+        return fig
+
+    def plot_QQ(self):
+        fig = sm.qqplot(self.model.resid, fit=True, line='45')
+        plt.title("QQ Plot of residuals")
+        plt.show()
 
 class Predictor():
 
@@ -231,22 +259,6 @@ class Predictor():
 
     def add_model(self, model_name:str, target:str, parameters:list, order:int=1, description:str=None, intercept:bool=True):
         self.models[model_name] = LinearRegression(self.df_train, self.df_val, target, parameters, order, description, intercept)
-
-
-
-# Creating a general plotting function for plotting a scatter plot and line on the same figure
-def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, x_title, y_title):
-
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=x, y=scatter_y, name=scatter_name, mode="markers"))
-    fig.add_trace(go.Scatter(
-        x=x, y=line_y, name=line_name))
-    fig.update_layout(title=title, xaxis_title=x_title,
-        yaxis_title=y_title)
-    
-    return fig
 
 def get_cols_x(df, col_y):
     """get a list of all the columns names not matching col_y"""
