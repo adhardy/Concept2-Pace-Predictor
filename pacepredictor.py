@@ -7,6 +7,7 @@ import pprint
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import math
+import statsmodels.formula.api as smf
 
 class LinearRegressionIteration():
     def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
@@ -61,9 +62,9 @@ def create_lr_formula(col_y:str, cols_x:list):
 
     return formula[:-3]
 
-class LinearRegression():
+class AutoLinearRegression():
 
-    def __init__(self, df_train, df_test, df_val, col_y:str, cols_x:list, order:int, description:str=None, alpha:float=0.05, intercept:bool=True):       
+    def __init__(self, df_train, df_val, col_y:str, cols_x:list, order:int, description:str=None, alpha:float=0.05, intercept:bool=True):       
         
         self.df_train = df_train.copy() #make sure we have copies as the model will alter the contents
         self.df_test = df_test.copy()
@@ -118,6 +119,9 @@ class LinearRegression():
             row = [iteration.mse, iteration.rmse, iteration.model.pvalues.idxmax(), iteration.model.pvalues.max(),iteration.intercept, iteration.cols_x, iteration.model.params.to_list(), iteration.model.pvalues.to_list()]
             self.summary.loc[len(self.summary)] = row
 
+# class LinearRegression():
+#     def __init__():
+
 class Predictor():
 
     def __init__(self, file, random_state=None):
@@ -126,6 +130,7 @@ class Predictor():
         #replace all space in column names with underscores for patsy
         self.df = self.df.rename(columns=lambda x: x.replace(" ", "_"))
         self.models = {}
+        self.auto_models = {}
 
     def load_csv(self, file:str):
         """Load the input csv into a pandas dataframe (self.df)"""
@@ -153,8 +158,68 @@ class Predictor():
         self.df_val.columns = columns
         self.df_val = self.df_val.astype(dtypes)
 
-    def add_model(self, model_name:str, col_y:str, cols_x:list, order:int=1, descrption:str=None, alpha:float=0.05, intercept=True):
-        self.models[model_name] = LinearRegression(self.df_train, self.df_test, self.df_val, col_y, cols_x, order, descrption, alpha, intercept)
+    def plot_scatters(self, target, parameters, cols=2, height=4000, width=2000):
+
+        rows = math.ceil(len(parameters) / cols) 
+
+        subplot_titles = tuple(f"{parameter} vs {target}" for parameter in parameters)
+        fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+        for i, col_name in enumerate(parameters):
+            row = (i // cols) + 1
+            col = (i % cols) + 1
+            
+            fig.add_trace(go.Scattergl(x=self.df[col_name], y=self.df[target], mode="markers"), row=row, col=col)
+
+        fig.update_layout(height=height, width=width, title="Target vs Parameters", showlegend=False)
+        #fig.update_yaxes(title_text=target, row = row, col = row)
+        return fig
+
+    def plot_distributions(self, cols = 4, height=4000, width=2000):
+
+        rows = math.ceil(len(self.df.columns) / cols) 
+
+        subplot_titles = tuple(parameter for parameter in self.df.columns)
+        fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+        for i, col_name in enumerate(self.df.columns):
+            row = (i // cols) + 1
+            col = (i % cols) + 1
+            
+            fig.add_trace(go.Histogram(x=self.df[col_name]), row=row, col=col)
+            #fig.update_xaxes(title_text=col_name, row = row, col = row)
+            #fig.update_yaxes(title_text="Count", row = row, col = row)
+        fig.update_layout(height=height, width=width, title="Distribution", showlegend=False)
+        return fig
+
+    def plot_violins(self, target, parameters,cols=4, height=4000, width=2000):
+
+        rows = math.ceil(len(parameters) / cols) 
+
+        cols = 2
+        subplot_titles = tuple(f"{parameter} vs {target}" for parameter in parameters)
+        fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
+
+        for i, col_name in enumerate(parameters):
+            row = (i // cols) + 1
+            col = (i % cols) + 1
+            
+            fig.add_trace(go.Violin(
+                x=self.df[col_name], y=self.df[target], name=col_name, box_visible=True
+            ), row=row, col=col)
+            
+            fig.update_xaxes(patch=dict(type='category', categoryorder='mean ascending'), row=row, col=col)
+            
+        fig.update_layout(height=height, width=width)
+        return fig
+        
+    def add_auto_model(self, model_name:str, col_y:str, cols_x:list, order:int=1, description:str=None, alpha:float=0.05, intercept:bool=True):
+        self.auto_models[model_name] = AutoLinearRegression(self.df_train, self.df_val, col_y, cols_x, order, description, alpha, intercept)
+
+    def add_model(self, model_name:str, target:str, parameters:list, order:int=1, description:str=None, intercept:bool=True):
+        self.models[model_name] = LinearRegression(self.df_train. self.df_val, target, parameters, order, description, intercept)
+
+
 
 # Creating a general plotting function for plotting a scatter plot and line on the same figure
 def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, x_title, y_title):
@@ -197,55 +262,10 @@ def percent_complete(df):
     print(df.notnull().mean()*100)
 
 
-def plot_scatters(df, target, parameters, cols=2, height=4000, width=2000):
 
-    rows = math.ceil(len(parameters) / cols) 
 
-    subplot_titles = tuple(f"{parameter} vs {target}" for parameter in parameters)
-    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
 
-    for i, col_name in enumerate(parameters):
-        row = (i // cols) + 1
-        col = (i % cols) + 1
-        
-        fig.add_trace(go.Scattergl(x=df[col_name], y=df[target], mode="markers"), row=row, col=col)
-
-    fig.update_layout(height=height, width=width, title="Target vs Parameters", showlegend=False)
-    return fig
-
-def plot_distributions(df,cols = 4, height=4000, width=2000):
-
-    rows = math.ceil(len(df.columns) / cols) 
-
-    subplot_titles = tuple(parameter for parameter in df.columns)
-    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
-
-    for i, col_name in enumerate(df.columns):
-        row = (i // cols) + 1
-        col = (i % cols) + 1
-        
-        fig.add_trace(go.Histogram(x=df[col_name]), row=row, col=col)
-
-    fig.update_layout(height=height, width=width, title="Distribution", showlegend=False)
-    return fig
-
-def plot_violins(df, target, parameters,cols = 4, height=4000, width=2000):
-
-    rows = math.ceil(len(parameters) / cols) 
-
-    cols = 2
-    subplot_titles = tuple(f"{parameter} vs {target}" for parameter in parameters)
-    fig = make_subplots(rows=rows, cols=cols, subplot_titles=subplot_titles)
-
-    for i, col_name in enumerate(parameters):
-        row = (i // cols) + 1
-        col = (i % cols) + 1
-        
-        fig.add_trace(go.Violin(
-            x=df[col_name], y=df[target], name=col_name, box_visible=True
-        ), row=row, col=col)
-        
-        fig.update_xaxes(patch=dict(type='category', categoryorder='mean ascending'), row=row, col=col)
-        
-    fig.update_layout(height=height, width=width)
-    return fig
+def linear_regression(df, target, parameters):
+    formula = f"{target} ~ {' + '.join(parameters)}"
+    model = smf.ols(formula=formula, data=df).fit()
+    return model
