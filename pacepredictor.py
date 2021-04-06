@@ -10,7 +10,7 @@ import math
 import statsmodels.formula.api as smf
 import statsmodels.api as sm
 from matplotlib import pyplot as plt
-import statsmodels.api as sm
+
 
 class LinearRegressionIteration():
     def __init__(self, linear_regression, cols_x, col_y, intercept=True):       
@@ -166,7 +166,7 @@ class LinearRegression():
         self.df_val[f"{self.target}_pred"] = self.model.predict(self.df_val)
         self.df_val["squared_error"] = (self.df_val[self.target] - self.df_val[f"{self.target}_pred"])**2
         self.mse = self.df_val["squared_error"].mean()
-        
+        self.mean = self.df_val[f"{self.target}_pred"].mean()
     def anova(self):
         return sm.stats.anova_lm(self.model, typ=2)
 
@@ -187,9 +187,9 @@ class LinearRegression():
         
         return fig
 
-    def plot_QQ(self):
+    def plot_QQ(self, title="QQ Plot of residuals"):
         fig = sm.qqplot(self.model.resid, fit=True, line='45')
-        plt.title("QQ Plot of residuals")
+        plt.title(title)
         plt.show()
 
     def p_max(self):
@@ -332,3 +332,19 @@ def plot_scatter_and_line(x, scatter_y, line_y, scatter_name, line_name, title, 
         yaxis_title=y_title)
     
     return fig
+
+
+def do_linear_regression(predictor, model_name, target, order=1, drop=[], intercept=True):
+    print(model_name + "\n\n")
+    parameters = predictor.df.columns.drop(target).to_list()
+    predictor.add_model(model_name, target, parameters,order, drop=drop, intercept=intercept)
+    print(predictor.models[model_name].model.summary())
+
+    fig = predictor.models[model_name].plot_residuals()
+    fig.show()
+    predictor.models[model_name].plot_QQ()
+
+    print(f"\nMean squared error: {round(predictor.models[model_name].mse,5)}")
+    print(f"Root Mean squared error: {round(np.sqrt(predictor.models[model_name].mse),5)}")
+    print(f"{round(np.sqrt(predictor.models[model_name].mse)/predictor.models[model_name].mean * 100,2)} % of mean\n")
+    predictor.models[model_name].p_max()
